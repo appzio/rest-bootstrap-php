@@ -1,0 +1,25 @@
+{
+    "name": "activationengine/php-sdk",
+    "description": "ActivationEngine PHP SDK",
+    "keywords": ["activationengine", "sdk"],
+    "type": "library",
+    "homepage": "https://github.com/activationengine/rest-bootstrap-php",
+    "license": "Apache2",
+    "authors": [
+        {
+            "name": "Activation Engine",
+            "homepage": "https://github.com/activationengine/rest-bootstrap-php/contributors"
+        }
+    ],
+    "require": {
+        "php": ">=5.2.0",
+        "ext-curl": "*",
+        "ext-json": "*"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "3.7.*"
+    },
+    "autoload": {
+        "classmap": ["src"]
+    }
+}

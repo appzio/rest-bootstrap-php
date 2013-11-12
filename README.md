@@ -1,4 +1,6 @@
-rest-bootstrap-php
-==================
+see http://aengine.net/wiki
 
-This is a PHP bootstrap library for Activation Engine REST interface.
+for up-to-date documentation & implementation status
+
+To run the phpunit:
+phpunit --stderr --bootstrap tests/bootstrap.php tests/tests.php
