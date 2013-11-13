@@ -128,23 +128,21 @@ class ActivationEngine
 	if($query){
 		$params['query'] = $query;
 	}
-	
-	echo(chr(10) .'------------START-----------' .chr(10));
-	
+
+/*	echo(chr(10) .'------------START-----------' .chr(10));*/
+
     $params = json_encode($params);
     $params = $this->aeEncode($params);
     $opts[CURLOPT_POSTFIELDS] = array('params' => $params);
     
     $opts[CURLOPT_URL] = $url;
     
-    echo($url);
+/*    echo($url);
 	echo(chr(10));
     echo($params);
     echo(chr(10) .'again decoded:');
     echo($this->aeDecode($params));
-    echo(chr(10));
-
-
+    echo(chr(10));*/
 
     // disable the 'Expect: 100-continue' behaviour. This causes CURL to wait
     // for 2 seconds if the server does not support this header.
@@ -201,7 +199,7 @@ class ActivationEngine
 		$ret = aeDecode($result);
 		return json_decode($ret);
 	} else {
-		echo(chr(10) .'------------END-----------' .chr(10));
+/*		echo(chr(10) .'------------END-----------' .chr(10));*/
 		return json_decode($result);
 	}
 	
