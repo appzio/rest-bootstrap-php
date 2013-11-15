@@ -66,8 +66,8 @@ class ActivationEngine
   	  	$callurl = $this->api_url .'/' .$this->api_key .'/users/createuser';
   	  	$query['userinfo'] = $params;
 		$ret = $this->makeRequest($callurl,$query);
-		
-		if(strlen($ret->token) == 16){
+
+		if(isset($ret->token) AND strlen($ret->token) == 16){
 			return $ret;
 		} else {
 			return false;
@@ -134,10 +134,12 @@ class ActivationEngine
     $params = json_encode($params);
     $params = $this->aeEncode($params);
     $opts[CURLOPT_POSTFIELDS] = array('params' => $params);
-    
     $opts[CURLOPT_URL] = $url;
-    
-/*    echo($url);
+
+/*      echo($url);
+      print_r($params);
+
+    echo($url);
 	echo(chr(10));
     echo($params);
     echo(chr(10) .'again decoded:');
@@ -210,14 +212,12 @@ class ActivationEngine
         	$cipher = $this->api_secret_key;
             $content = mcrypt_encrypt(MCRYPT_RIJNDAEL_128, $cipher, $content,MCRYPT_MODE_CBC,'f9sd92Adj22Aj9mB');
             $content = base64_encode($content);
-            $content = urlencode($content);
-            file_put_contents(rand(1,9),$content);
+            //file_put_contents(rand(1,9),$content); // you can use this for debugging
             return $content;
         }
 
         public  function aeDecode($content){
         	$cipher = $this->api_secret_key;
-            $content = urldecode($content);
             $content = base64_decode($content);
             $content = mcrypt_decrypt(MCRYPT_RIJNDAEL_128,$cipher,$content,MCRYPT_MODE_CBC,'f9sd92Adj22Aj9mB');
             $content = rtrim($content,"\0\4");
