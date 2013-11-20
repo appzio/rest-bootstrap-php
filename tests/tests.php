@@ -6,10 +6,10 @@
 
 
 class PHPSDKTestCase extends PHPUnit_Framework_TestCase {
-  const API_KEY = 'ea47ee7cac54316e';
-  const API_SECRET_KEY = '3e2233f090e99fce';
-  const BASEURL = 'http://ae.com';
-  const APIURL = 'http://ae.com/api';
+  const API_KEY = 'b8d580cef3967549';
+  const API_SECRET_KEY = '24d4d308568cdd4e';
+  const BASEURL = 'http://aengine.net';
+  const APIURL = 'http://aengine.net/api';
 
   const TEST_USER   = 6;
   const TEST_USER_2 = 78;

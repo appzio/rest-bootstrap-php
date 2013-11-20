@@ -7,8 +7,8 @@ require "$base/src/activationengine.php";
 define('AEURL', 'http://ae.com/api');
 
 $params = array(
-    'api_key'  => 'ea47ee7cac54316e',
-    'api_secret_key' => '3e2233f090e99fce',
+    'api_key'  => '0c48ec8e9120b2d7',
+    'api_secret_key' => '8b99bacd9e2af8af',
     'api_url' => 'http://ae.com/api'
 );
 
@@ -28,7 +28,6 @@ if(!isset($_SESSION['aetoken'])){
 }
 
 $cssurl = AEURL .'/' .$token .'/publictoken/getcss?css=dashboard&format=html';
-$dashboard = file_get_contents(AEURL .'/' .$_SESSION['aetoken'] .'/publictoken/getdashboard');
 
 function createToken($params){
     $activationengine = new ActivationEngine($params);
@@ -50,19 +49,15 @@ function createToken($params){
 /* this will return either true or msgtoken */
 function ae_callurl(){
     if(isset($_SESSION['aetoken'])){
-        $msg = file_get_contents(AEURL .'/' .$_SESSION['aetoken'] .'/publictoken/visitpage?page=' .$_SERVER['PHP_SELF']);
+        $msg = file_get_contents(AEURL .'/' .$_SESSION['aetoken'] .'/publictoken/getpage?page=' .$_SERVER['PHP_SELF']);
         $return = json_decode($msg);
-        if(isset($return->msg)){
-            if($return->msg == 'ok'){
-                return true;
-            } else {
-                if(isset($return->msgtoken)){
-                    return $return->msgtoken;
-                }
-            }
+        echo($return->dashboard);
+
+        if(isset($return->message)){
+            echo($return->message);
         }
     } else {
-        return true;
+        return false;
     }
 }
 

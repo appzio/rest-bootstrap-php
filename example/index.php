@@ -7,7 +7,7 @@ require('ae.php');
 <head>
     <title>Example - Activation Engine</title>
     <link rel="stylesheet" type="text/css" href="<?php echo($cssurl); ?>">
-    <script type="text/javascript" src="../js/jquery.js"></script>
+    <script type="text/javascript" src="../js/jquery-1.10.2.min.js"></script>
     <script type="text/javascript">
         // Check if the page has loaded completely
         $(document).ready( function() {
@@ -20,7 +20,6 @@ require('ae.php');
 
         <body>
 
-    <?php echo($dashboard); ?>
 
     <div id="some_id"><?php ae_callurl();?></div>
 
