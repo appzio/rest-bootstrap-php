@@ -6,8 +6,14 @@
 
 
 class PHPSDKTestCase extends PHPUnit_Framework_TestCase {
-  const API_KEY = 'b8d580cef3967549';
-  const API_SECRET_KEY = '24d4d308568cdd4e';
+/*  const API_KEY = '0c48ec8e9120b2d7';
+  const API_SECRET_KEY = '8b99bacd9e2af8af';
+  const BASEURL = 'http://ae.com';
+  const APIURL = 'http://ae.com/api';*/
+
+
+  const API_KEY = '062cc7ea6e8571da';
+  const API_SECRET_KEY = '58b0707b7a5c7217';
   const BASEURL = 'http://aengine.net';
   const APIURL = 'http://aengine.net/api';
 
@@ -20,7 +26,6 @@ class PHPSDKTestCase extends PHPUnit_Framework_TestCase {
       'api_secret_key' => self::API_SECRET_KEY,
       'api_url' => self::APIURL
     );
-  
 
   private static $kExpiredAccessToken = 'AAABrFmeaJjgBAIshbq5ZBqZBICsmveZCZBi6O4w9HSTkFI73VMtmkL9jLuWsZBZC9QMHvJFtSulZAqonZBRIByzGooCZC8DWr0t1M4BL9FARdQwPWPnIqCiFQ';
 
@@ -47,7 +52,6 @@ class PHPSDKTestCase extends PHPUnit_Framework_TestCase {
     
     /* create user */
     $userinfo = $activationengine->createUser($userparams);
-        
 	$this->assertEquals(strlen($userinfo->token),16,"doesn't look like a valid token");
 	
 	/* test whether token is valid */	
@@ -57,8 +61,14 @@ class PHPSDKTestCase extends PHPUnit_Framework_TestCase {
 	/* drop user */
 	$test = $activationengine->dropUser($userinfo->username);
 	$this->assertEquals($test, true, "Couldn't delete the user :-/");
-
   }
+
+    public function testFetchClientConfig(){
+        $activationengine = new ActivationEngine($this->params);
+        $callresult = $activationengine->fetchClientConfig();
+        $this->assertContains('main_color',$callresult->clientconfig, 'looks like client config was not returned properly');
+        $this->assertContains('main_page',$callresult->strings, 'looks like localization was not returned properly');
+    }
 
   private static function doCall($call,$post=false){
     $opts = array('http'=>array('header' => "User-Agent:MyAgent/1.0\r\n"));

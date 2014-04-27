@@ -13,8 +13,6 @@ if (!function_exists('mcrypt_decrypt')) {
 }
 
 
-
-
 class ActivationEngine 
 {
   const AESS_COOKIE_NAME = 'aess';
@@ -28,7 +26,6 @@ class ActivationEngine
   protected $api_key;
   protected $api_secret_key;
   protected $api_url;
-
 
   // Stores the shared session ID if one is set.
   protected $sharedSessionID;
@@ -53,8 +50,7 @@ class ActivationEngine
   	$this->api_url = $config['api_url'];
     	
   }
-  
-  
+
   public function testKey(){
   	$callurl = $this->api_url .'/' .$this->api_key .'/test/testapi';  	
   	$return = $this->makeRequest($callurl);
@@ -87,7 +83,6 @@ class ActivationEngine
  	 	}
   }
 
-  
   /* tests whether access token is valid */
   public function testAccessToken($token){
 	$callurl = $this->api_url .'/' .$this->api_key .'/users/checktoken';  	
@@ -99,6 +94,13 @@ class ActivationEngine
   		return false;
   	}
   }
+
+  /* fetches config for client (mobile client) */
+   public function fetchClientConfig(){
+       $callurl = $this->api_url .'/' .$this->api_key .'/clientconfig/getclientconfig';
+       $return = $this->makeRequest($callurl);
+       return $return;
+   }
   
   protected function makeRequest($url, $query=array(), $ch=null) {
     if (!$ch) {
@@ -136,6 +138,7 @@ class ActivationEngine
     $opts[CURLOPT_POSTFIELDS] = array('params' => $params);
     $opts[CURLOPT_URL] = $url;
 
+
 /*      echo($url);
       print_r($params);
 
@@ -158,9 +161,7 @@ class ActivationEngine
     
     curl_setopt_array($ch, $opts);
     $result = curl_exec($ch);
-
     $errno = curl_errno($ch);
-    
     
     // CURLE_SSL_CACERT || CURLE_SSL_CACERT_BADFILE
     if ($errno == 60 || $errno == 77) {
