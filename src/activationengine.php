@@ -12,6 +12,9 @@ if (!function_exists('mcrypt_decrypt')) {
   throw new Exception('ActivationEngine needs the mcrypt PHP extension.');
 }
 
+require('Cryptor.php');
+require('Decryptor.php');
+require('Encryptor.php');
 
 class ActivationEngine 
 {
@@ -110,7 +113,7 @@ class ActivationEngine
     $opts = self::$CURL_OPTS;
     
   //  if ($this->getFileUploadSupport()) {
-  //    $opts[CURLOPT_POSTFIELDS] = $params;
+  //    $opts[CURLOPTfiPOSTFIELDS] = $params;
   //  } else {
   //    $opts[CURLOPT_POSTFIELDS] = http_build_query($params, null, '&');
   //  }
@@ -135,19 +138,8 @@ class ActivationEngine
 
     $params = json_encode($params);
     $params = $this->aeEncode($params);
-    $opts[CURLOPT_POSTFIELDS] = array('params' => $params);
+    $opts[CURLOPT_POSTFIELDS] = array('params' => $params, 'cryptversion' => 2);
     $opts[CURLOPT_URL] = $url;
-
-
-/*      echo($url);
-      print_r($params);
-
-    echo($url);
-	echo(chr(10));
-    echo($params);
-    echo(chr(10) .'again decoded:');
-    echo($this->aeDecode($params));
-    echo(chr(10));*/
 
     // disable the 'Expect: 100-continue' behaviour. This causes CURL to wait
     // for 2 seconds if the server does not support this header.
@@ -158,10 +150,16 @@ class ActivationEngine
     } else {
       $opts[CURLOPT_HTTPHEADER] = array('Expect:');
     }
-    
+
     curl_setopt_array($ch, $opts);
     $result = curl_exec($ch);
     $errno = curl_errno($ch);
+
+   //   file_put_contents('tester',$params);
+
+   //   print_r($opts);
+   //   print_r($url);
+   //   die();
     
     // CURLE_SSL_CACERT || CURLE_SSL_CACERT_BADFILE
     if ($errno == 60 || $errno == 77) {
@@ -207,24 +205,69 @@ class ActivationEngine
 	}
 	
   }
-  
-  
-        public  function aeEncode($content){
-        	$cipher = $this->api_secret_key;
-            $content = mcrypt_encrypt(MCRYPT_RIJNDAEL_128, $cipher, $content,MCRYPT_MODE_CBC,'f9sd92Adj22Aj9mB');
-            $content = base64_encode($content);
-            //file_put_contents(rand(1,9),$content); // you can use this for debugging
+
+        public function aeEncode($content){
+            $cryptor = new \RNCryptor\Encryptor();
+            $content = $cryptor->encrypt($content, $this->api_secret_key);
             return $content;
         }
 
-        public  function aeDecode($content){
-        	$cipher = $this->api_secret_key;
-            $content = base64_decode($content);
-            $content = mcrypt_decrypt(MCRYPT_RIJNDAEL_128,$cipher,$content,MCRYPT_MODE_CBC,'f9sd92Adj22Aj9mB');
-            $content = rtrim($content,"\0\4");
+        public function aeDecode($content){
+            $cryptor = new \RNCryptor\Decryptor();
+            $content = $cryptor->decrypt($content, $this->api_secret_key);
             return $content;
         }
 
+}
 
 
+
+if (!function_exists('hash_pbkdf2')) {
+
+    /**
+     * Based on pbkdf2() from https://defuse.ca/php-pbkdf2.htm. Made signature-compatible with hash_pbkdf2() in PHP5.5
+     *
+     * PBKDF2 key derivation function as defined by RSA's PKCS #5: https://www.ietf.org/rfc/rfc2898.txt
+     * $algorithm - The hash algorithm to use. Recommended: SHA256
+     * $password - The password.
+     * $salt - A salt that is unique to the password.
+     * $count - Iteration count. Higher is better, but slower. Recommended: At least 1000.
+     * $key_length - The length of the derived key in bytes.
+     * $raw_output - If true, the key is returned in raw binary format. Hex encoded otherwise.
+     * Returns: A $key_length-byte key derived from the password and salt.
+     *
+     * Test vectors can be found here: https://www.ietf.org/rfc/rfc6070.txt
+     *
+     * This implementation of PBKDF2 was originally created by https://defuse.ca
+     * With improvements by http://www.variations-of-shadow.com
+     */
+    function hash_pbkdf2($algorithm, $password, $salt, $count, $key_length = 0, $raw_output = false)
+    {
+        $algorithm = strtolower($algorithm);
+        if(!in_array($algorithm, hash_algos(), true))
+            die('PBKDF2 ERROR: Invalid hash algorithm.');
+        if($count <= 0 || $key_length <= 0)
+            die('PBKDF2 ERROR: Invalid parameters.');
+
+        $hash_length = strlen(hash($algorithm, "", true));
+        $block_count = ceil($key_length / $hash_length);
+
+        $output = "";
+        for($i = 1; $i <= $block_count; $i++) {
+            // $i encoded as 4 bytes, big endian.
+            $last = $salt . pack("N", $i);
+            // first iteration
+            $last = $xorsum = hash_hmac($algorithm, $last, $password, true);
+            // perform the other $count - 1 iterations
+            for ($j = 1; $j < $count; $j++) {
+                $xorsum ^= ($last = hash_hmac($algorithm, $last, $password, true));
+            }
+            $output .= $xorsum;
+        }
+
+        if($raw_output)
+            return substr($output, 0, $key_length);
+        else
+            return bin2hex(substr($output, 0, $key_length));
+    }
 }
