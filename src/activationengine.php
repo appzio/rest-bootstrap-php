@@ -64,9 +64,11 @@ class ActivationEngine
   public function createUser($params){
   	  	$callurl = $this->api_url .'/' .$this->api_key .'/users/createuser';
   	  	$query['userinfo'] = $params;
+       // $query['debug'] =  true;  // set this to save calls & returns as files
+        $this->encrypted_response = false;
 		$ret = $this->makeRequest($callurl,$query);
 
-		if(isset($ret->token) AND strlen($ret->token) == 16){
+		if(isset($ret->token) AND strlen($ret->token) == 32){
 			return $ret;
 		} else {
 			return false;
@@ -98,113 +100,157 @@ class ActivationEngine
   	}
   }
 
+
+
+
   /* fetches config for client (mobile client) */
-   public function fetchClientConfig(){
+   public function fetchClientConfig($token){
        $callurl = $this->api_url .'/' .$this->api_key .'/clientconfig/getclientconfig';
-       $return = $this->makeRequest($callurl);
+       $return = $this->makeRequest($callurl,array('token' => $token));
        return $return;
    }
-  
-  protected function makeRequest($url, $query=array(), $ch=null) {
-    if (!$ch) {
-      $ch = curl_init();
-    }
 
-    $opts = self::$CURL_OPTS;
-    
-  //  if ($this->getFileUploadSupport()) {
-  //    $opts[CURLOPTfiPOSTFIELDS] = $params;
-  //  } else {
-  //    $opts[CURLOPT_POSTFIELDS] = http_build_query($params, null, '&');
-  //  }
-    
-    
-    /* we send the api_key as param also, this is required
-    to authorize the call */
-    
-    $params['api_key'] = $this->api_key;
-    $params['api_version'] = self::API_VERSION;
-    $params['format'] = self::API_FORMAT;
-    
-    if($this->encrypted_response == true){
-    	$params['encrypt_response'] = true;
-    }
-        
-	if($query){
-		$params['query'] = $query;
-	}
 
-/*	echo(chr(10) .'------------START-----------' .chr(10));*/
+    /* fetch user points , returns json containing primary, secondary and tertiary points */
+    public function fetchUserPoints($token){
+        $callurl = $this->api_url .'/' .$token .'/points/getuserpoints';
+        $return = $this->curlCall($callurl);
+        $return = @json_decode($return);
 
-    $params = json_encode($params);
-    $params = $this->aeEncode($params);
-    $opts[CURLOPT_POSTFIELDS] = array('params' => $params, 'cryptversion' => 2);
-    $opts[CURLOPT_URL] = $url;
-
-    // disable the 'Expect: 100-continue' behaviour. This causes CURL to wait
-    // for 2 seconds if the server does not support this header.
-    if (isset($opts[CURLOPT_HTTPHEADER])) {
-      $existing_headers = $opts[CURLOPT_HTTPHEADER];
-      $existing_headers[] = 'Expect:';
-      $opts[CURLOPT_HTTPHEADER] = $existing_headers;
-    } else {
-      $opts[CURLOPT_HTTPHEADER] = array('Expect:');
-    }
-
-    curl_setopt_array($ch, $opts);
-    $result = curl_exec($ch);
-    $errno = curl_errno($ch);
-
-   //   file_put_contents('tester',$params);
-
-   //   print_r($opts);
-   //   print_r($url);
-   //   die();
-    
-    // CURLE_SSL_CACERT || CURLE_SSL_CACERT_BADFILE
-    if ($errno == 60 || $errno == 77) {
-      self::errorLog('Invalid or no certificate authority found, '.
-                     'using bundled information');
-      curl_setopt($ch, CURLOPT_CAINFO,
-                  dirname(__FILE__) . DIRECTORY_SEPARATOR . 'fb_ca_chain_bundle.crt');
-      $result = curl_exec($ch);
-    }
-
-    // With dual stacked DNS responses, it's possible for a server to
-    // have IPv6 enabled but not have IPv6 connectivity.  If this is
-    // the case, curl will try IPv4 first and if that fails, then it will
-    // fall back to IPv6 and the error EHOSTUNREACH is returned by the
-    // operating system.
-    if ($result === false && empty($opts[CURLOPT_IPRESOLVE])) {
-        $matches = array();
-        $regex = '/Failed to connect to ([^:].*): Network is unreachable/';
-        if (preg_match($regex, curl_error($ch), $matches)) {
-          if (strlen(@inet_pton($matches[1])) === 16) {
-            self::errorLog('Invalid IPv6 configuration on server, '.
-                           'Please disable or get native IPv6 on your server.');
-            self::$CURL_OPTS[CURLOPT_IPRESOLVE] = CURL_IPRESOLVE_V4;
-            curl_setopt($ch, CURLOPT_IPRESOLVE, CURL_IPRESOLVE_V4);
-            $result = curl_exec($ch);
-          }
+        if(is_object(($return))){
+            return $return;
+        } else {
+            return false;
         }
     }
 
-    if ($result === false) {
-    	echo(curl_error($ch));
-	    curl_close($ch);
+    /* This will return toplist & additional array which shows current users relevant position (ie. two records before and after). IMPORTANT: you should cache these results, especially if you are using extravars option. If you want to extract player photo, you will need to request the specific variable for photo. That variable will return an image link.
+        Parameters you can use with this method are:
+
+        limit (default 10) -- how many results to return
+        extravars (default: none) -- comma separated list of game variables that should be returned along with the list. Each added variable will affect performance, so make sure to cache these results.
+        point (default primary) -- primary | secondary | tertiary to which points to return the list
+        timelimit (default no limit) -- hour | day | month | year
+    */
+
+    public function fetchToplist($token){
+        $callurl = $this->api_url .'/' .$token .'/points/toplist';
+        $return = $this->curlCall($callurl);
+        $return = @json_decode($return);
+
+        if(is_object(($return))){
+            return $return;
+        } else {
+            return false;
+        }
     }
+
+
+
+    protected function curlCall($url,$params=array()){
+        $ch = curl_init();
+        $opts = self::$CURL_OPTS;
+        $opts[CURLOPT_POSTFIELDS] = $params;
+        $opts[CURLOPT_URL] = $url;
+        // disable the 'Expect: 100-continue' behaviour. This causes CURL to wait
+        // for 2 seconds if the server does not support this header.
+        if (isset($opts[CURLOPT_HTTPHEADER])) {
+            $existing_headers = $opts[CURLOPT_HTTPHEADER];
+            $existing_headers[] = 'Expect:';
+            $opts[CURLOPT_HTTPHEADER] = $existing_headers;
+        } else {
+            $opts[CURLOPT_HTTPHEADER] = array('Expect:');
+        }
+
+        curl_setopt_array($ch, $opts);
+        $result = curl_exec($ch);
+        $errno = curl_errno($ch);
+
+        // CURLE_SSL_CACERT || CURLE_SSL_CACERT_BADFILE
+        if ($errno == 60 || $errno == 77) {
+            self::errorLog('Invalid or no certificate authority found, '.
+                'using bundled information');
+            curl_setopt($ch, CURLOPT_CAINFO,
+                dirname(__FILE__) . DIRECTORY_SEPARATOR . 'fb_ca_chain_bundle.crt');
+            $result = curl_exec($ch);
+        }
+
+        if ($result === false && empty($opts[CURLOPT_IPRESOLVE])) {
+            $matches = array();
+            $regex = '/Failed to connect to ([^:].*): Network is unreachable/';
+            if (preg_match($regex, curl_error($ch), $matches)) {
+                if (strlen(@inet_pton($matches[1])) === 16) {
+                    self::errorLog('Invalid IPv6 configuration on server, '.
+                        'Please disable or get native IPv6 on your server.');
+                    self::$CURL_OPTS[CURLOPT_IPRESOLVE] = CURL_IPRESOLVE_V4;
+                    curl_setopt($ch, CURLOPT_IPRESOLVE, CURL_IPRESOLVE_V4);
+                    $result = curl_exec($ch);
+                }
+            }
+        }
+
+        if ($result === false) {
+            echo(curl_error($ch));
+            curl_close($ch);
+        }
+
+        curl_close($ch);
+
+        return $result;
+    }
+
+
+    protected function makeRequest($url, $query=array(), $ch=null) {
+
+        if($query['debug'] == true){
+            $debug = true;
+            unset($query['debug']);
+        }
     
-    curl_close($ch);
-    
-    if($this->encrypted_response == true){
-		$ret = aeDecode($result);
-		return json_decode($ret);
-	} else {
-/*		echo(chr(10) .'------------END-----------' .chr(10));*/
-		return json_decode($result);
-	}
-	
-  }
+        /* we send the api_key as param also, this is required
+        to authorize the call */
+
+        $params['api_key'] = $this->api_key;
+        $params['api_version'] = self::API_VERSION;
+        $params['format'] = self::API_FORMAT;
+
+        if($this->encrypted_response == true){
+            $params['encrypt_response'] = true;
+        }
+
+        if($query){
+            $params['query'] = $query;
+        }
+
+
+        $params = json_encode($params);
+        $params = $this->aeEncode($params);
+        $postfields = array('params' => $params, 'cryptversion' => 2);
+        $result = $this->curlCall($url,$postfields);
+
+        if($debug == true){
+            file_put_contents('raw-result.txt',$result);
+        }
+
+
+        if($this->encrypted_response == true){
+            $ret = aeDecode($result);
+
+            if($debug == true){
+                file_put_contents('result-unencrypted.txt',$result);
+            }
+
+            return json_decode($ret);
+        } else {
+    /*		echo(chr(10) .'------------END-----------' .chr(10));*/
+            if($debug == true){
+                file_put_contents('result-plain.txt',$result);
+                print_r(json_decode($result));
+            }
+            return json_decode($result);
+        }
+
+      }
 
         public function aeEncode($content){
             $cryptor = new \RNCryptor\Encryptor();
