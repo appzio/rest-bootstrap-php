@@ -12,13 +12,15 @@ class PHPSDKTestCase extends PHPUnit_Framework_TestCase {
   const BASEURL = 'http://ae.com/';
   const APIURL = 'http://ae.com/api';*/
 
-  const API_KEY = '1e0155f9b0eb95c2';
-  const API_SECRET_KEY = '791f2076c2c8722a';
-  const BASEURL = 'http://aengine.net/';
-  const APIURL = 'http://aengine.net/api';
+    const API_KEY = '1e0155f9b0eb95c2';
+    const API_SECRET_KEY = '791f2076c2c8722a';
+    const BASEURL = 'http://aengine.net/';
+    const APIURL = 'http://aengine.net/api';
 
   const TEST_USER   = 6;
   const TEST_USER_2 = 78;
+
+  const FBACCESSTOKEN = 'INSERTYOURTOKEN';  // set this to valid access token, get one from here: https://developers.facebook.com/tools/explorer/
   
   private $accesstoken;
   private $params = array(
@@ -71,6 +73,54 @@ class PHPSDKTestCase extends PHPUnit_Framework_TestCase {
 
   }
 
+
+    public function testLogin(){
+        $activationengine = new ActivationEngine($this->params);
+        $userinfo = $this->createUser($activationengine);
+        $token = $activationengine->loginUser($userinfo->username);
+        $this->assertEquals(32, strlen($token), 'Looks like we did not get a valid token');
+
+        /* drop user */
+        $activationengine->dropUser($userinfo->username);
+    }
+
+
+    public function testVariables(){
+        $activationengine = new ActivationEngine($this->params);
+        $userinfo = $this->createUser($activationengine);
+        $value = 'suolijoki';
+
+        $var = $activationengine->updateVariable($userinfo->username,'kaupunki',$value);
+        $var_return = $activationengine->fetchVariable($userinfo->username,'kaupunki');
+
+        $this->assertEquals($value, $var_return->variable, 'Looks like variables do not work properly');
+
+        /* drop user */
+        $activationengine->dropUser($userinfo->username);
+
+    }
+
+    public function testFbId(){
+        $activationengine = new ActivationEngine($this->params);
+        $userinfo = $this->createUser($activationengine);
+        $return = $activationengine->addFacebookId($userinfo->username,'1303834107');
+        $this->assertEquals('ok', $return->msg, 'Looks like the facebook user was not valid');
+
+        /* drop user */
+        $activationengine->dropUser($userinfo->username);
+    }
+
+
+    public function testFbToken(){
+        $activationengine = new ActivationEngine($this->params);
+        $userinfo = $this->createUser($activationengine);
+        $return = $activationengine->addFacebookToken($userinfo->username,self::FBACCESSTOKEN);
+        $this->assertEquals('ok', $return->msg, 'Looks like the facebook user was not valid');
+
+        /* drop user */
+        $activationengine->dropUser($userinfo->username);
+    }
+
     public function testFetchClientConfig(){
         $activationengine = new ActivationEngine($this->params);
         $userinfo = $this->createUser($activationengine);
@@ -103,6 +153,7 @@ class PHPSDKTestCase extends PHPUnit_Framework_TestCase {
         /* drop user */
         $activationengine->dropUser($userinfo->username);
     }
+
 
     private static function doCall($call,$post=false){
         $opts = array('http'=>array('header' => "User-Agent:MyAgent/1.0\r\n"));

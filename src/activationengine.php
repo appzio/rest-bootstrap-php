@@ -100,10 +100,70 @@ class ActivationEngine
   	}
   }
 
+    /* login user */
+    public function loginUser($userid){
+        $callurl = $this->api_url .'/' .$this->api_key .'/users/loginuser';
+        $return = $this->makeRequest($callurl,array('username' => $userid));
+
+        if(is_object($return) AND isset($return->token)){
+            return $return->token;
+        } else {
+            return false;
+        }
+    }
+
+    /* login user */
+    public function addFacebookId($userid,$fbid){
+        $callurl = $this->api_url .'/' .$this->api_key .'/users/addfacebookid';
+        $return = $this->makeRequest($callurl,array('username' => $userid, 'fbid' => $fbid));
+
+
+        if(is_object($return)){
+            return $return;
+        } else {
+            return false;
+        }
+    }
+
+
+    public function addFacebookToken($userid,$token){
+        $callurl = $this->api_url .'/' .$this->api_key .'/users/addfacebooktoken';
+        $return = $this->makeRequest($callurl,array('username' => $userid, 'fbtoken' => $token));
+
+        if(is_object($return)){
+            return $return;
+        } else {
+            return false;
+        }
+    }
+
+
+    public function updateVariable($userid,$variable_name,$variable_value){
+        $callurl = $this->api_url .'/' .$this->api_key .'/variable/updateuservariable';
+        $return = $this->makeRequest($callurl,array('username' => $userid, 'variable_name' => $variable_name,'variable_value' => $variable_value));
+
+        if(is_object($return)){
+            return $return;
+        } else {
+            return false;
+        }
+    }
+
+
+    public function fetchVariable($userid,$variable_name){
+        $callurl = $this->api_url .'/' .$this->api_key .'/variable/fetchuservariable';
+        $return = $this->makeRequest($callurl,array('username' => $userid, 'variable_name' => $variable_name));
+
+        if(is_object($return)){
+            return $return;
+        } else {
+            return false;
+        }
+    }
 
 
 
-  /* fetches config for client (mobile client) */
+    /* fetches config for client (mobile client) */
    public function fetchClientConfig($token){
        $callurl = $this->api_url .'/' .$this->api_key .'/clientconfig/getclientconfig';
        $return = $this->makeRequest($callurl,array('token' => $token));
@@ -226,6 +286,12 @@ class ActivationEngine
         $params = json_encode($params);
         $params = $this->aeEncode($params);
         $postfields = array('params' => $params, 'cryptversion' => 2);
+
+        if($debug == true){
+            file_put_contents('reqest.txt',$params .$url);
+        }
+
+
         $result = $this->curlCall($url,$postfields);
 
         if($debug == true){
