@@ -1,6 +1,35 @@
 <?php
 
 
+/* This is the Activation Engine bootstrap class which will handle encryption and methods
+   look at the tests.php on clues how to implement its usage.
+
+   As a rule of thumb, api will always return json for both success and on errors. For
+   public methods, the api is called with a valid session token, unencrypted and also the
+   response is unencrypted. Private methods require authentication.
+
+   If you need to debug a particular call, you can simply add ,'debug' => true) on the
+   MakeRequest array. This will save files with both the request and response content
+   (files ending in .txt). So for example, you would test it like this:
+
+    public function addFacebookId($userid,$fbid){
+        $callurl = $this->api_url .'/' .$this->api_key .'/users/addfacebookid';
+        $return = $this->makeRequest($callurl,array('username' => $userid, 'fbid' => $fbid, 'debug' => true));
+
+
+        if(is_object($return)){
+            return $return;
+        } else {
+            return false;
+        }
+    }
+
+    Before going any further with debugging something, make sure that the phpunit tests run
+    without problems.
+
+*/
+
+
 if (!function_exists('curl_init')) {
   throw new Exception('ActivationEngine needs the CURL PHP extension.');
 }
@@ -67,6 +96,7 @@ class ActivationEngine
        // $query['debug'] =  true;  // set this to save calls & returns as files
         $this->encrypted_response = false;
 		$ret = $this->makeRequest($callurl,$query);
+
 
 		if(isset($ret->token) AND strlen($ret->token) == 32){
 			return $ret;
@@ -138,9 +168,23 @@ class ActivationEngine
     }
 
 
+    /* updates a single variable */
     public function updateVariable($userid,$variable_name,$variable_value){
         $callurl = $this->api_url .'/' .$this->api_key .'/variable/updateuservariable';
         $return = $this->makeRequest($callurl,array('username' => $userid, 'variable_name' => $variable_name,'variable_value' => $variable_value));
+
+        if(is_object($return)){
+            return $return;
+        } else {
+            return false;
+        }
+    }
+
+
+    /* updates several variables at once */
+    public function updateVariables($userid,$variables=array()){
+        $callurl = $this->api_url .'/' .$this->api_key .'/variable/updateuservariables';
+        $return = $this->makeRequest($callurl,array('username' => $userid, 'variables' => $variables));
 
         if(is_object($return)){
             return $return;
@@ -204,8 +248,6 @@ class ActivationEngine
             return false;
         }
     }
-
-
 
     protected function curlCall($url,$params=array()){
         $ch = curl_init();

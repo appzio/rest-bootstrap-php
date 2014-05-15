@@ -12,16 +12,27 @@ class PHPSDKTestCase extends PHPUnit_Framework_TestCase {
   const BASEURL = 'http://ae.com/';
   const APIURL = 'http://ae.com/api';*/
 
-    const API_KEY = '1e0155f9b0eb95c2';
-    const API_SECRET_KEY = '791f2076c2c8722a';
+    const API_KEY = '33bcb5b8a0467dde';
+    const API_SECRET_KEY = 'fda85945e09d32a1';
     const BASEURL = 'http://aengine.net/';
     const APIURL = 'http://aengine.net/api';
 
   const TEST_USER   = 6;
   const TEST_USER_2 = 78;
 
-  const FBACCESSTOKEN = 'INSERTYOURTOKEN';  // set this to valid access token, get one from here: https://developers.facebook.com/tools/explorer/
-  
+  /* get this from here: https://developers.facebook.com/tools/explorer/
+     token is checked against https://graph.facebook.com/me?access_token=YOURTOKEN
+     before its saved to user information
+  */
+
+  const FBACCESSTOKEN = 'AAABrFmeaJjgBAIshbq5ZBqZBICsmveZCZBi6O4w9HSTkFI73VMtmkL9jLuWsZBZC9QMHvJFtSulZAqonZBRIByzGooCZC8DWr0t1M4BL9FARdQwPWPnIqCiFQ';
+
+    /* any valid Facebook user id, token & id are not cross-checked by the api, but saving
+       the token is enough, it will also save fbuserid if its not set for the user
+     */
+
+  const FBUSERID = '1097139142"';
+
   private $accesstoken;
   private $params = array(
       'api_key'  => self::API_KEY,
@@ -52,6 +63,7 @@ class PHPSDKTestCase extends PHPUnit_Framework_TestCase {
 
       /* create user */
       $userinfo = $activationengine->createUser($userparams);
+
       return $userinfo;
   }
   
@@ -60,7 +72,15 @@ class PHPSDKTestCase extends PHPUnit_Framework_TestCase {
     $activationengine = new ActivationEngine($this->params);
 
     /* create user */
-    $userinfo = $this->createUser($activationengine);
+      $userinfo = $this->createUser($activationengine);
+    $count = 0;
+
+
+/*    while($count < 100000){
+        $userinfo = $this->createUser($activationengine);
+        $count++;
+    }*/
+
 	$this->assertEquals(strlen($userinfo->token),32,"doesn't look like a valid token");
 	
 	/* test whether token is valid */	
@@ -92,8 +112,13 @@ class PHPSDKTestCase extends PHPUnit_Framework_TestCase {
 
         $var = $activationengine->updateVariable($userinfo->username,'kaupunki',$value);
         $var_return = $activationengine->fetchVariable($userinfo->username,'kaupunki');
-
         $this->assertEquals($value, $var_return->variable, 'Looks like variables do not work properly');
+
+
+/*        $testarray = array('kaupunki' => 'espoo','name' => 'Juha');
+        $activationengine->updateVariables($userinfo->username,$testarray);
+        $var_return = $activationengine->fetchVariable($userinfo->username,'name');
+        $this->assertEquals('Juha', $var_return->variable, 'Looks like variables do not work properly');*/
 
         /* drop user */
         $activationengine->dropUser($userinfo->username);
@@ -103,7 +128,7 @@ class PHPSDKTestCase extends PHPUnit_Framework_TestCase {
     public function testFbId(){
         $activationengine = new ActivationEngine($this->params);
         $userinfo = $this->createUser($activationengine);
-        $return = $activationengine->addFacebookId($userinfo->username,'1303834107');
+        $return = $activationengine->addFacebookId($userinfo->username,self::FBUSERID);
         $this->assertEquals('ok', $return->msg, 'Looks like the facebook user was not valid');
 
         /* drop user */
@@ -136,7 +161,7 @@ class PHPSDKTestCase extends PHPUnit_Framework_TestCase {
         $activationengine = new ActivationEngine($this->params);
         $userinfo = $this->createUser($activationengine);
         $callresult = $activationengine->fetchUserPoints($userinfo->token);
-        $this->assertContains('2', $callresult->primary, 'Looks like we did not get point information correctly. Note that if you are testing this against
+        $this->assertEquals('2', $callresult->primary, 'Looks like we did not get point information correctly. Note that if you are testing this against
         your own game, the game should be setup so, that there is an invisible action which assigns player 2 points when game is createad. Ie. test expects
         to get two points for any new user');
 
