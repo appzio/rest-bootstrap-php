@@ -31,7 +31,7 @@ class PHPSDKTestCase extends PHPUnit_Framework_TestCase {
        the token is enough, it will also save fbuserid if its not set for the user
      */
 
-  const FBUSERID = '1097139142"';
+  const FBUSERID = '1097139142';
 
   private $accesstoken;
   private $params = array(
@@ -42,13 +42,14 @@ class PHPSDKTestCase extends PHPUnit_Framework_TestCase {
 
   private static $kExpiredAccessToken = 'AAABrFmeaJjgBAIshbq5ZBqZBICsmveZCZBi6O4w9HSTkFI73VMtmkL9jLuWsZBZC9QMHvJFtSulZAqonZBRIByzGooCZC8DWr0t1M4BL9FARdQwPWPnIqCiFQ';
 
-    public static function testConnection(){
+  /* will test that the site is accessible */
+  public static function testConnection(){
   	if(self::doCall(self::BASEURL .'/en/site/index')){
   		return true;
   	}
   }
 
-  /* test connection */
+  /* test that api is accessible. If not, make sure that API is enabled on your game and that keys are set correctly */
   public function testApi(){
     $activationengine = new ActivationEngine($this->params);
     $callresult = $activationengine->testKey();
@@ -72,15 +73,7 @@ class PHPSDKTestCase extends PHPUnit_Framework_TestCase {
     $activationengine = new ActivationEngine($this->params);
 
     /* create user */
-      $userinfo = $this->createUser($activationengine);
-    $count = 0;
-
-
-/*    while($count < 100000){
-        $userinfo = $this->createUser($activationengine);
-        $count++;
-    }*/
-
+    $userinfo = $this->createUser($activationengine);
 	$this->assertEquals(strlen($userinfo->token),32,"doesn't look like a valid token");
 	
 	/* test whether token is valid */	
@@ -95,6 +88,7 @@ class PHPSDKTestCase extends PHPUnit_Framework_TestCase {
 
 
     public function testLogin(){
+        /* login user, returns token */
         $activationengine = new ActivationEngine($this->params);
         $userinfo = $this->createUser($activationengine);
         $token = $activationengine->loginUser($userinfo->username);
@@ -104,21 +98,41 @@ class PHPSDKTestCase extends PHPUnit_Framework_TestCase {
         $activationengine->dropUser($userinfo->username);
     }
 
+    public function testUserinfo(){
+        $activationengine = new ActivationEngine($this->params);
+        $userinfo = $this->createUser($activationengine);
+
+        /* set users phone number */
+        $activationengine->setUserInfo($userinfo->username,array('phone' => '123'));
+        $var_return = $activationengine->getUserInfo($userinfo->username);
+        $this->assertEquals('123', $var_return->phone, 'Looks like user info does not work properly, problem getting the phone');
+
+        /* test fetching user information (first sets variable) */
+        $value = 'nuolijoki';
+        $var = $activationengine->updateVariable($userinfo->username,'city',$value);
+        $var_return = $activationengine->getUserInfo($userinfo->username);
+        $this->assertEquals($value, $var_return->variables->city->value, 'Looks like user info does not work properly, problem getting variable');
+
+        /* drop user */
+        $activationengine->dropUser($userinfo->username);
+    }
+
 
     public function testVariables(){
         $activationengine = new ActivationEngine($this->params);
         $userinfo = $this->createUser($activationengine);
-        $value = 'suolijoki';
 
-        $var = $activationengine->updateVariable($userinfo->username,'kaupunki',$value);
-        $var_return = $activationengine->fetchVariable($userinfo->username,'kaupunki');
+        /* update variable value for user (note: test game must have variable called city for this to work */
+        $value = 'muonio';
+        $var = $activationengine->updateVariable($userinfo->username,'city',$value);
+        $var_return = $activationengine->fetchVariable($userinfo->username,'city');
         $this->assertEquals($value, $var_return->variable, 'Looks like variables do not work properly');
 
-
-/*        $testarray = array('kaupunki' => 'espoo','name' => 'Juha');
+        /* test updating several variables at once */
+        $testarray = array('city' => 'espoo','name' => 'Juha');
         $activationengine->updateVariables($userinfo->username,$testarray);
         $var_return = $activationengine->fetchVariable($userinfo->username,'name');
-        $this->assertEquals('Juha', $var_return->variable, 'Looks like variables do not work properly');*/
+        $this->assertEquals('Juha', $var_return->variable, 'Looks like variables do not work properly');
 
         /* drop user */
         $activationengine->dropUser($userinfo->username);
@@ -128,6 +142,8 @@ class PHPSDKTestCase extends PHPUnit_Framework_TestCase {
     public function testFbId(){
         $activationengine = new ActivationEngine($this->params);
         $userinfo = $this->createUser($activationengine);
+
+        /* add facebook id to user information NOTE: you can't use setUserInfo method for this */
         $return = $activationengine->addFacebookId($userinfo->username,self::FBUSERID);
         $this->assertEquals('ok', $return->msg, 'Looks like the facebook user was not valid');
 
@@ -139,6 +155,8 @@ class PHPSDKTestCase extends PHPUnit_Framework_TestCase {
     public function testFbToken(){
         $activationengine = new ActivationEngine($this->params);
         $userinfo = $this->createUser($activationengine);
+
+        /* tests the provided facebook token and adds it to user if its valid (also sets fbid based on token) */
         $return = $activationengine->addFacebookToken($userinfo->username,self::FBACCESSTOKEN);
         $this->assertEquals('ok', $return->msg, 'Looks like the facebook user was not valid');
 
@@ -146,6 +164,8 @@ class PHPSDKTestCase extends PHPUnit_Framework_TestCase {
         $activationengine->dropUser($userinfo->username);
     }
 
+
+    /* this is a special method for mobile client, which returns configuration parameters for it */
     public function testFetchClientConfig(){
         $activationengine = new ActivationEngine($this->params);
         $userinfo = $this->createUser($activationengine);
@@ -157,6 +177,7 @@ class PHPSDKTestCase extends PHPUnit_Framework_TestCase {
         $activationengine->dropUser($userinfo->username);
     }
 
+    /* fetch users points */
     public function testGetUserPoints(){
         $activationengine = new ActivationEngine($this->params);
         $userinfo = $this->createUser($activationengine);
@@ -169,6 +190,7 @@ class PHPSDKTestCase extends PHPUnit_Framework_TestCase {
         $activationengine->dropUser($userinfo->username);
     }
 
+    /* fetches top list. see documentation for more info on parameters */
     public function testGetToplist(){
         $activationengine = new ActivationEngine($this->params);
         $userinfo = $this->createUser($activationengine);

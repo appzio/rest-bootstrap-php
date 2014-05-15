@@ -88,12 +88,14 @@ class ActivationEngine
   	$return = $this->makeRequest($callurl);
   	return $return;
   }
+
+
+
   
   /* create user and returns valid access token */
   public function createUser($params){
   	  	$callurl = $this->api_url .'/' .$this->api_key .'/users/createuser';
   	  	$query['userinfo'] = $params;
-       // $query['debug'] =  true;  // set this to save calls & returns as files
         $this->encrypted_response = false;
 		$ret = $this->makeRequest($callurl,$query);
 
@@ -104,8 +106,37 @@ class ActivationEngine
 			return false;
 		}
   }
-  
-  /* drop user */
+
+    public function getUserInfo($username){
+        $callurl = $this->api_url .'/' .$this->api_key .'/users/getuserinfo';
+        $query['username'] = $username;
+        $return = $this->makeRequest($callurl,$query);
+
+        if(is_object($return)){
+            return $return;
+        } else {
+            return false;
+        }
+    }
+
+    /* following fields are supported:
+        new_username,email,phone,firstname,lastname,timezone,temp_user */
+
+    public function setUserInfo($username,$params){
+        $callurl = $this->api_url .'/' .$this->api_key .'/users/setuserinfo';
+        $query['username'] = $username;
+
+        $return = $this->makeRequest($callurl,$query+$params);
+
+        if($return->msg == 'ok'){
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+
+    /* drop user */
   public function dropUser($username){
   	  	$callurl = $this->api_url .'/' .$this->api_key .'/users/dropuser';
   	  	$query['username'] = $username;
@@ -330,7 +361,7 @@ class ActivationEngine
         $postfields = array('params' => $params, 'cryptversion' => 2);
 
         if($debug == true){
-            file_put_contents('reqest.txt',$params .$url);
+            file_put_contents('request.txt',$params .$url);
         }
 
 
