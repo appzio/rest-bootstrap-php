@@ -64,6 +64,7 @@ class PHPSDKTestCase extends PHPUnit_Framework_TestCase {
 
       /* create user */
       $userinfo = $activationengine->createUser($userparams);
+      $this->assertEquals(strlen($userinfo->token), 32, "Token does not work :-(");
 
       return $userinfo;
   }
@@ -97,6 +98,32 @@ class PHPSDKTestCase extends PHPUnit_Framework_TestCase {
         /* drop user */
         $activationengine->dropUser($userinfo->username);
     }
+
+    /* fetch users points */
+    public function testGetUserPoints(){
+        $activationengine = new ActivationEngine($this->params);
+        $userinfo = $this->createUser($activationengine);
+        $callresult = $activationengine->fetchUserPoints($userinfo->token);
+        $this->assertEquals('2', $callresult->primary, 'Looks like we did not get point information correctly. Note that if you are testing this against
+        your own game, the game should be setup so, that there is an invisible action which assigns player 2 points when game is createad. Ie. test expects
+        to get two points for any new user');
+
+        $callresult = $activationengine->fetchUserPoints($userinfo->token);
+
+        $activationengine->manipulatePoints($userinfo->username,'primary','-1');
+        $activationengine->manipulatePoints($userinfo->username,'secondary','1');
+        $activationengine->manipulatePoints($userinfo->username,'tertiary','3');
+
+        $callresult = $activationengine->fetchUserPoints($userinfo->token);
+
+        $this->assertEquals('1',$callresult->primary,'something fishy with primary points');
+        $this->assertEquals('3',$callresult->secondary,'something fishy with primary points');
+        $this->assertEquals('5',$callresult->tertiary,'something fishy with primary points');
+
+        /* drop user */
+        $activationengine->dropUser($userinfo->username);
+    }
+
 
     public function testUserinfo(){
         $activationengine = new ActivationEngine($this->params);
@@ -177,18 +204,6 @@ class PHPSDKTestCase extends PHPUnit_Framework_TestCase {
         $activationengine->dropUser($userinfo->username);
     }
 
-    /* fetch users points */
-    public function testGetUserPoints(){
-        $activationengine = new ActivationEngine($this->params);
-        $userinfo = $this->createUser($activationengine);
-        $callresult = $activationengine->fetchUserPoints($userinfo->token);
-        $this->assertEquals('2', $callresult->primary, 'Looks like we did not get point information correctly. Note that if you are testing this against
-        your own game, the game should be setup so, that there is an invisible action which assigns player 2 points when game is createad. Ie. test expects
-        to get two points for any new user');
-
-        /* drop user */
-        $activationengine->dropUser($userinfo->username);
-    }
 
     /* fetches top list. see documentation for more info on parameters */
     public function testGetToplist(){

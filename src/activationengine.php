@@ -107,6 +107,22 @@ class ActivationEngine
 		}
   }
 
+    public function manipulatePoints($username,$pointsystem,$points){
+        $callurl = $this->api_url .'/' .$this->api_key .'/users/manipulatepoints';
+        $query['pointsystem'] = $pointsystem;
+        $query['points'] = $points;
+        $query['username'] = $username;
+
+        $ret = $this->makeRequest($callurl,$query);
+
+        if(isset($ret->msg)){
+            return $ret->msg;
+        } else {
+            return false;
+        }
+
+    }
+
     public function getUserInfo($username){
         $callurl = $this->api_url .'/' .$this->api_key .'/users/getuserinfo';
         $query['username'] = $username;
