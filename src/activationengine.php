@@ -29,10 +29,10 @@
 
 */
 
-
 if (!function_exists('curl_init')) {
   throw new Exception('ActivationEngine needs the CURL PHP extension.');
-}
+} 
+
 if (!function_exists('json_decode')) {
   throw new Exception('ActivationEngine needs the JSON PHP extension.');
 }
@@ -218,7 +218,7 @@ class ActivationEngine
     /* updates a single variable */
     public function updateVariable($userid,$variable_name,$variable_value){
         $callurl = $this->api_url .'/' .$this->api_key .'/variable/updateuservariable';
-        $return = $this->makeRequest($callurl,array('username' => $userid, 'variable_name' => $variable_name,'variable_value' => $variable_value));
+        $return = $this->makeRequest($callurl,array('username' => $userid, 'debug' => 'true', 'variablename' => $variable_name,'variablevalue' => $variable_value));
 
         if(is_object($return)){
             return $return;
@@ -243,7 +243,7 @@ class ActivationEngine
 
     public function fetchVariable($userid,$variable_name){
         $callurl = $this->api_url .'/' .$this->api_key .'/variable/fetchuservariable';
-        $return = $this->makeRequest($callurl,array('username' => $userid, 'variable_name' => $variable_name));
+        $return = $this->makeRequest($callurl,array('username' => $userid, 'variablename' => $variable_name));
 
         if(is_object($return)){
             return $return;
@@ -295,6 +295,37 @@ class ActivationEngine
             return false;
         }
     }
+
+
+    /* adds a push id
+        device should be either ios, android or web at this point
+    */
+    public function addPushId($userid,$pushid,$device){
+        $callurl = $this->api_url .'/' .$this->api_key .'/users/activatepush';
+        $return = $this->makeRequest($callurl,array('username' => $userid, 'pushid' => $pushid,'device' => $device));
+
+        if(is_object($return)){
+            return $return;
+        } else {
+            return false;
+        }
+    }
+
+    /* adds a push id
+        device should be either ios, android or web at this point
+    */
+    public function retrievePushId($userid){
+        $callurl = $this->api_url .'/' .$this->api_key .'/users/retrievepushid';
+        $return = $this->makeRequest($callurl,array('username' => $userid));
+
+        if(is_object($return)){
+            return $return;
+        } else {
+            return false;
+        }
+    }
+
+
 
     protected function curlCall($url,$params=array()){
         $ch = curl_init();
@@ -355,7 +386,9 @@ class ActivationEngine
             $debug = true;
             unset($query['debug']);
         }
-    
+
+        //$debug = true;
+
         /* we send the api_key as param also, this is required
         to authorize the call */
 
@@ -370,7 +403,6 @@ class ActivationEngine
         if($query){
             $params['query'] = $query;
         }
-
 
         $params = json_encode($params);
         $params = $this->aeEncode($params);

@@ -4,7 +4,6 @@
    api version 1.0
 */
 
-
 class PHPSDKTestCase extends PHPUnit_Framework_TestCase {
 
 /*  const API_KEY = '500b0d8ce48386d0';
@@ -87,6 +86,20 @@ class PHPSDKTestCase extends PHPUnit_Framework_TestCase {
 
   }
 
+
+
+    public function testPushId(){
+        /* create user, add push id */
+        $activationengine = new ActivationEngine($this->params);
+        $userinfo = $this->createUser($activationengine);
+        $activationengine->addPushId($userinfo->username,'tester','ios');
+
+        /* check that it got saved ok */
+        $return = $activationengine->retrievePushId($userinfo->username);
+        $this->assertEquals('tester', $return->device_id, 'Looks like there is a problem with setting the push id');
+
+
+    }
 
     public function testLogin(){
         /* login user, returns token */
