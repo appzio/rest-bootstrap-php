@@ -27,6 +27,8 @@
     Before going any further with debugging something, make sure that the phpunit tests run
     without problems.
 
+    Bootstrap library version 1.1.3, 2.9.2014 to work with Activation Engine api 1.1
+
 */
 
 if (!function_exists('curl_init')) {
@@ -52,7 +54,7 @@ class ActivationEngine
   // We can set this to a high number because the main session
   // expiration will trump this.
   const AESS_COOKIE_EXPIRE = 31556926; 	// 1 year
-  const API_VERSION = '1.0';
+  const API_VERSION = '1.1';
   const API_FORMAT = 'json';			// either json or html
   
   protected $api_key;
@@ -64,6 +66,18 @@ class ActivationEngine
   
   // defines whether the response is expected to be encrypted
   protected $encrypted_response = false;
+
+
+  /*
+        Encrypt options
+
+        1 = depreceated, EOL 1/2015
+        2 = secure PBKDF2 (default)
+        3 = simple base 64, no real security
+
+  */
+
+  public $encryptScheme = 2;
   
   /**
    * Default options for curl.
@@ -133,6 +147,46 @@ class ActivationEngine
         } else {
             return false;
         }
+    }
+
+    public function getActions($token){
+        $callurl = $this->api_url .'/' .$token .'/actions/getactions';
+        $query['debug'] = false;
+        $return = $this->makeRequest($callurl,$query);
+
+
+        if(is_object($return)){
+            return $return;
+        } else {
+            return false;
+        }
+    }
+
+    /* marks action completed
+        important to note: this action will resolve action and give points automatically
+
+    */
+
+
+    public function completeAction($token,$actionid,$actiontoken,$answer=false){
+        $callurl = $this->api_url .'/' .$token .'/actions/completeaction';
+
+        $query['debug'] = false;
+        $query['token'] = $actiontoken;
+        $query['actionid'] = $actionid;
+
+        if($answer){
+            $query['answer'] = $answer;
+        }
+
+        $return = $this->makeRequest($callurl,$query);
+
+        if($return->msg == 'ok'){
+            return true;
+        } else {
+            return false;
+        }
+
     }
 
     /* following fields are supported:
@@ -218,7 +272,7 @@ class ActivationEngine
     /* updates a single variable */
     public function updateVariable($userid,$variable_name,$variable_value){
         $callurl = $this->api_url .'/' .$this->api_key .'/variable/updateuservariable';
-        $return = $this->makeRequest($callurl,array('username' => $userid, 'debug' => 'true', 'variablename' => $variable_name,'variablevalue' => $variable_value));
+        $return = $this->makeRequest($callurl,array('username' => $userid, 'variablename' => $variable_name,'variablevalue' => $variable_value));
 
         if(is_object($return)){
             return $return;
@@ -405,13 +459,20 @@ class ActivationEngine
         }
 
         $params = json_encode($params);
-        $params = $this->aeEncode($params);
-        $postfields = array('params' => $params, 'cryptversion' => 2);
 
-        if($debug == true){
-            file_put_contents('request.txt',$params .$url);
+        if($this->encryptScheme == 2){
+            $params = $this->aeEncode($params);
+        } elseif($this->encryptScheme == 3){
+            $params = base64_encode($params);
+        } else {
+            throw new Exception('Encryption not supported by this library. Only 2 & 3 are valid values.');
         }
 
+        $postfields = array('params' => $params, 'cryptversion' => $this->encryptScheme);
+
+        if($debug == true){
+            file_put_contents('request.txt',$url .'?cryptversion=2&params=' .$params);
+        }
 
         $result = $this->curlCall($url,$postfields);
 
@@ -419,9 +480,13 @@ class ActivationEngine
             file_put_contents('raw-result.txt',$result);
         }
 
-
         if($this->encrypted_response == true){
-            $ret = aeDecode($result);
+
+            if($this->encryptScheme == 2){
+                $ret = aeDecode($result);
+            } elseif($this->encryptScheme == 3){
+                $ret = base64_decode($result);
+            }
 
             if($debug == true){
                 file_put_contents('result-unencrypted.txt',$result);

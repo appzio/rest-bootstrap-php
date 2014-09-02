@@ -1,20 +1,20 @@
 <?php
 
 /* phpunit tests for Activation Engine REST API 
-   api version 1.0
+   boostrap library version 1.1.3, 2.9.2014 to work with Activation Engine api 1.1
 */
 
 class PHPSDKTestCase extends PHPUnit_Framework_TestCase {
 
-/*  const API_KEY = '500b0d8ce48386d0';
-  const API_SECRET_KEY = '90848de9d6e68020';
-  const BASEURL = 'http://ae.com/';
-  const APIURL = 'http://ae.com/api';*/
+  const API_KEY = '535a3102e27cb2a3';
+  const API_SECRET_KEY = 'a642095b46cf5542';
+  const BASEURL = 'http://staging.aengine.net/';
+  const APIURL = 'http://staging.aengine.net/api';
 
-    const API_KEY = '33bcb5b8a0467dde';
+/*    const API_KEY = '33bcb5b8a0467dde';
     const API_SECRET_KEY = 'fda85945e09d32a1';
     const BASEURL = 'http://aengine.net/';
-    const APIURL = 'http://aengine.net/api';
+    const APIURL = 'http://aengine.net/api';*/
 
   const TEST_USER   = 6;
   const TEST_USER_2 = 78;
@@ -67,8 +67,9 @@ class PHPSDKTestCase extends PHPUnit_Framework_TestCase {
 
       return $userinfo;
   }
-  
-  /* tests that we can create user, check its access token and drop the same user */
+
+
+    /* tests that we can create user, check its access token and drop the same user */
   public function testCreateUser(){
     $activationengine = new ActivationEngine($this->params);
 
@@ -86,6 +87,58 @@ class PHPSDKTestCase extends PHPUnit_Framework_TestCase {
 
   }
 
+    public function testGetActions(){
+        $activationengine = new ActivationEngine($this->params);
+        $userinfo = $this->createUser($activationengine);
+        $return = $activationengine->getActions($userinfo->token);
+
+        $ret = each($return);
+        $action = $ret[1];
+
+        /* check we get an action list with at least one action */
+        $this->assertEquals(is_object($action), true, "Didn't get a proper action list. Make sure your test game has an active action which includes Hello world! text.");
+        $this->assertContains('Hello world', $action->msg, "Didn't get an action. Make sure your test game has an active action which includes Hello world! text.");
+
+        /* check that the webview displays ok */
+        $opts = array('http'=>array('header' => "User-Agent:MyAgent/1.0\r\n"));
+        $context = stream_context_create($opts);
+        $web = file_get_contents($action->actionurl_mobile_en,false,$context);
+        $this->assertContains('Hello world', $web, "Didn't get action's webview. Make sure your test game has an active action which includes Hello world! text.");
+
+        /* complete action */
+        $return = $activationengine->completeAction($userinfo->token, $action->actionid, $action->token);
+        $this->assertEquals(true,$return, "Couldn't complete the action :-/");
+
+        /* drop user */
+        $test = $activationengine->dropUser($userinfo->username);
+        $this->assertEquals(true,$test, "Couldn't delete the user :-/");
+
+    }
+
+
+
+    /* this will test the simple base64 encryption scheme, which exists
+        in favor of android to provide better performance at the cost of
+        security */
+
+    public function testSimpleEncrypt(){
+        $activationengine = new ActivationEngine($this->params);
+        $activationengine->encryptScheme = 3;
+
+        /* create user */
+        $userinfo = $this->createUser($activationengine);
+        $this->assertEquals(strlen($userinfo->token),32,"doesn't look like a valid token, using simple encryption scheme");
+
+        /* test whether token is valid */
+        $test = $activationengine->testAccessToken($userinfo->token);
+        $this->assertEquals($test, true, "Token does not work / connecting using simple encryption scheme");
+
+        /* drop user */
+        $test = $activationengine->dropUser($userinfo->username);
+        $this->assertEquals($test, true, "Couldn't delete the user using simple encryption scheme");
+
+    }
+
 
 
     public function testPushId(){
@@ -97,8 +150,6 @@ class PHPSDKTestCase extends PHPUnit_Framework_TestCase {
         /* check that it got saved ok */
         $return = $activationengine->retrievePushId($userinfo->username);
         $this->assertEquals('tester', $return->device_id, 'Looks like there is a problem with setting the push id');
-
-
     }
 
     public function testLogin(){
@@ -136,6 +187,8 @@ class PHPSDKTestCase extends PHPUnit_Framework_TestCase {
         /* drop user */
         $activationengine->dropUser($userinfo->username);
     }
+
+
 
 
     public function testUserinfo(){
@@ -205,17 +258,20 @@ class PHPSDKTestCase extends PHPUnit_Framework_TestCase {
     }
 
 
-    /* this is a special method for mobile client, which returns configuration parameters for it */
-    public function testFetchClientConfig(){
+    /* this is a special method for mobile client, which returns configuration parameters for it
+        now depreceated. This information comes with userinfo.
+    */
+
+    /*    public function testFetchClientConfig(){
         $activationengine = new ActivationEngine($this->params);
         $userinfo = $this->createUser($activationengine);
         $callresult = $activationengine->fetchClientConfig($userinfo->token);
         $this->assertContains('main_color',$callresult->clientconfig, 'looks like client config was not returned properly');
         $this->assertContains('main_page',$callresult->strings, 'looks like localization was not returned properly');
 
-        /* drop user */
+        // drop user
         $activationengine->dropUser($userinfo->username);
-    }
+    }*/
 
 
     /* fetches top list. see documentation for more info on parameters */
