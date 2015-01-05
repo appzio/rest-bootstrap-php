@@ -77,7 +77,7 @@ class ActivationEngine
 
   */
 
-  public $encryptScheme = 2;
+  public $encryptScheme = 3;
   
   /**
    * Default options for curl.
@@ -110,9 +110,10 @@ class ActivationEngine
   public function createUser($params){
   	  	$callurl = $this->api_url .'/' .$this->api_key .'/users/createuser';
   	  	$query['userinfo'] = $params;
+        $query['debug'] = true;
+        $query['return_userinfo'] = true;
         $this->encrypted_response = false;
 		$ret = $this->makeRequest($callurl,$query);
-
 
 		if(isset($ret->token) AND strlen($ret->token) == 32){
 			return $ret;
@@ -120,6 +121,15 @@ class ActivationEngine
 			return false;
 		}
   }
+
+
+    /* list branches */
+    public function listBranches($token){
+        $callurl = $this->api_url .'/' .$this->api_key .'/branches/listbranches';
+        $return = $this->makeRequest($callurl,array('token' => $token));
+        return $return;
+
+    }
 
     public function manipulatePoints($username,$pointsystem,$points){
         $callurl = $this->api_url .'/' .$this->api_key .'/users/manipulatepoints';
@@ -140,6 +150,7 @@ class ActivationEngine
     public function getUserInfo($username){
         $callurl = $this->api_url .'/' .$this->api_key .'/users/getuserinfo';
         $query['username'] = $username;
+        //$query['stop'] = true;
         $return = $this->makeRequest($callurl,$query);
 
         if(is_object($return)){
@@ -152,8 +163,8 @@ class ActivationEngine
     public function getActions($token){
         $callurl = $this->api_url .'/' .$token .'/actions/getactions';
         $query['debug'] = false;
+        //$query['stop'] = true;
         $return = $this->makeRequest($callurl,$query);
-
 
         if(is_object($return)){
             return $return;
@@ -311,7 +322,7 @@ class ActivationEngine
     /* fetches config for client (mobile client) */
    public function fetchClientConfig($token){
        $callurl = $this->api_url .'/' .$this->api_key .'/clientconfig/getclientconfig';
-       $return = $this->makeRequest($callurl,array('token' => $token));
+       $return = $this->makeRequest($callurl,array('token' => $token,'debug' => true));
        return $return;
    }
 
@@ -396,6 +407,7 @@ class ActivationEngine
             $opts[CURLOPT_HTTPHEADER] = array('Expect:');
         }
 
+
         curl_setopt_array($ch, $opts);
         $result = curl_exec($ch);
         $errno = curl_errno($ch);
@@ -471,8 +483,15 @@ class ActivationEngine
         $postfields = array('params' => $params, 'cryptversion' => $this->encryptScheme);
 
         if($debug == true){
-            file_put_contents('request.txt',$url .'?cryptversion=2&params=' .$params);
+            file_put_contents('request.txt',$url .'?cryptversion=' .$this->encryptScheme .'&params=' .$params);
         }
+
+        if(isset($query['stop']) AND $query['stop'] == true){
+            print_r($url .'----' );
+            print_r($postfields);
+            die();
+        }
+
 
         $result = $this->curlCall($url,$postfields);
 

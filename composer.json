@@ -1,13 +1,13 @@
 {
-    "name": "activationengine/php-sdk",
-    "description": "ActivationEngine PHP SDK",
-    "keywords": ["activationengine", "sdk"],
+    "name": "appzio/php-sdk",
+    "description": "Appzio PHP SDK",
+    "keywords": ["appzio", "sdk"],
     "type": "library",
-    "homepage": "https://github.com/activationengine/rest-bootstrap-php",
+    "homepage": "https://github.com/appzio/rest-bootstrap-php",
     "license": "Apache2",
     "authors": [
         {
-            "name": "Activation Engine",
+            "name": "Appzio",
             "homepage": "https://github.com/activationengine/rest-bootstrap-php/contributors"
         }
     ],
