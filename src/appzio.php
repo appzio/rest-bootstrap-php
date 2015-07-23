@@ -1,7 +1,7 @@
 <?php
 
 
-/* This is the Activation Engine bootstrap class which will handle encryption and methods
+/* This is the Appzio bootstrap class which will handle encryption and methods
    look at the tests.php on clues how to implement its usage.
 
    As a rule of thumb, api will always return json for both success and on errors. For
@@ -27,27 +27,27 @@
     Before going any further with debugging something, make sure that the phpunit tests run
     without problems.
 
-    Bootstrap library version 1.1.3, 2.9.2014 to work with Activation Engine api 1.1
+    Bootstrap library version 1.1.4, 23.7.2015 to work with Appzio api 1.7
 
 */
 
 if (!function_exists('curl_init')) {
-  throw new Exception('ActivationEngine needs the CURL PHP extension.');
+  throw new Exception('Appzio needs the CURL PHP extension.');
 } 
 
 if (!function_exists('json_decode')) {
-  throw new Exception('ActivationEngine needs the JSON PHP extension.');
+  throw new Exception('Appzio needs the JSON PHP extension.');
 }
 
 if (!function_exists('mcrypt_decrypt')) {
-  throw new Exception('ActivationEngine needs the mcrypt PHP extension.');
+  throw new Exception('Appzio needs the mcrypt PHP extension.');
 }
 
 require('Cryptor.php');
 require('Decryptor.php');
 require('Encryptor.php');
 
-class ActivationEngine 
+class Appzio 
 {
   const AESS_COOKIE_NAME = 'aess';
 
@@ -56,7 +56,7 @@ class ActivationEngine
   const AESS_COOKIE_EXPIRE = 31556926; 	// 1 year
   const API_VERSION = '1.1';
   const API_FORMAT = 'json';			// either json or html
-  
+
   protected $api_key;
   protected $api_secret_key;
   protected $api_url;
@@ -78,7 +78,7 @@ class ActivationEngine
   */
 
   public $encryptScheme = 3;
-  
+
   /**
    * Default options for curl.
    */
@@ -86,15 +86,13 @@ class ActivationEngine
     CURLOPT_CONNECTTIMEOUT => 10,
     CURLOPT_RETURNTRANSFER => true,
     CURLOPT_TIMEOUT        => 60,
-    CURLOPT_USERAGENT      => 'activationengine-php-1.0.2',
+    CURLOPT_USERAGENT      => 'appzio-php-1.0.2',
   );
 
-  
   public function __construct($config) {
   	$this->api_key = $config['api_key'];
   	$this->api_secret_key = $config['api_secret_key'];
   	$this->api_url = $config['api_url'];
-    	
   }
 
   public function testKey(){
@@ -103,16 +101,16 @@ class ActivationEngine
   	return $return;
   }
 
-
-
-  
   /* create user and returns valid access token */
   public function createUser($params){
   	  	$callurl = $this->api_url .'/' .$this->api_key .'/users/createuser';
+
   	  	$query['userinfo'] = $params;
-        $query['debug'] = true;
+        $query['debug'] = false;
         $query['return_userinfo'] = true;
+
         $this->encrypted_response = false;
+
 		$ret = $this->makeRequest($callurl,$query);
 
 		if(isset($ret->token) AND strlen($ret->token) == 32){
@@ -222,7 +220,7 @@ class ActivationEngine
   	  	$callurl = $this->api_url .'/' .$this->api_key .'/users/dropuser';
   	  	$query['username'] = $username;
 		$return = $this->makeRequest($callurl,$query);
-		
+
   		if($return->msg == 'ok'){
  	 		return true;
  	 	} else {
@@ -232,9 +230,9 @@ class ActivationEngine
 
   /* tests whether access token is valid */
   public function testAccessToken($token){
-	$callurl = $this->api_url .'/' .$this->api_key .'/users/checktoken';  	
+	$callurl = $this->api_url .'/' .$this->api_key .'/users/checktoken';
   	$return = $this->makeRequest($callurl,array('token' => $token));
-  	  	  	
+
   	if($return->msg == 'ok'){
   		return true;
   	} else {
@@ -253,6 +251,19 @@ class ActivationEngine
             return false;
         }
     }
+
+    /* login user */
+    public function logoutUser($userid){
+        $callurl = $this->api_url .'/' .$this->api_key .'/users/logoutuser';
+        $return = $this->makeRequest($callurl,array('username' => $userid));
+
+        if(is_object($return) AND isset($return->token)){
+            return $return->token;
+        } else {
+            return false;
+        }
+    }
+
 
     /* login user */
     public function addFacebookId($userid,$fbid){
@@ -296,7 +307,7 @@ class ActivationEngine
     /* updates several variables at once */
     public function updateVariables($userid,$variables=array()){
         $callurl = $this->api_url .'/' .$this->api_key .'/variable/updateuservariables';
-        $return = $this->makeRequest($callurl,array('username' => $userid, 'variables' => $variables));
+        $return = $this->makeRequest($callurl,array('username' => $userid, 'variables' => $variables,'debug' => true));
 
         if(is_object($return)){
             return $return;
@@ -448,12 +459,12 @@ class ActivationEngine
 
     protected function makeRequest($url, $query=array(), $ch=null) {
 
-        if($query['debug'] == true){
+        if(isset($query['debug']) AND $query['debug'] == true){
             $debug = true;
             unset($query['debug']);
+        } else {
+            $debug = false;
         }
-
-        //$debug = true;
 
         /* we send the api_key as param also, this is required
         to authorize the call */
