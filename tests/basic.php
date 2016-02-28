@@ -3,25 +3,18 @@
 /* phpunit tests for Appzio REST API 
 */
 
+/*const TEST_API_KEY = '8a42243df064a313';
+const TEST_API_SECRET_KEY = 'dea6d09ff3a55292';
+const TEST_BASEURL = 'https://app.appzio.com/';
+const TEST_APIURL = 'https://app.appzio.com/api';
+const TEST_DEBUG = false;*/
+
 class PHPSDKTestCase extends PHPUnit_Framework_TestCase {
 
-/*  const API_KEY = 'd5bc2034a4994f88';
-  const API_SECRET_KEY = '0984147d89b2bd12';
-  const BASEURL = 'http://ae.com/';
-  const APIURL = 'http://ae.com/api';*/
-
-    const API_KEY = '6c61e8d735f0ad37';
-    const API_SECRET_KEY = 'b382a216845f274d';
-    const BASEURL = 'http://fi.appzio.com/';
-    const APIURL = 'http://fi.appzio.com/api';
-
-  const TEST_USER   = 6;
-  const TEST_USER_2 = 78;
-
-  /* get this from here: https://developers.facebook.com/tools/explorer/
-     token is checked against https://graph.facebook.com/me?access_token=YOURTOKEN
-     before its saved to user information
-  */
+    /* get this from here: https://developers.facebook.com/tools/explorer/
+         token is checked against https://graph.facebook.com/me?access_token=YOURTOKEN
+         before its saved to user information
+    */
 
   const FBACCESSTOKEN = 'AAABrFmeaJjgBAIshbq5ZBqZBICsmveZCZBi6O4w9HSTkFI73VMtmkL9jLuWsZBZC9QMHvJFtSulZAqonZBRIByzGooCZC8DWr0t1M4BL9FARdQwPWPnIqCiFQ';
 
@@ -32,17 +25,19 @@ class PHPSDKTestCase extends PHPUnit_Framework_TestCase {
   const FBUSERID = '1097139142';
 
   private $accesstoken;
+
   private $params = array(
-      'api_key'  => self::API_KEY,
-      'api_secret_key' => self::API_SECRET_KEY,
-      'api_url' => self::APIURL
+      'api_key'  => TEST_API_KEY,
+      'api_secret_key' => TEST_API_SECRET_KEY,
+      'api_url' => TEST_APIURL,
+      'debug' => TEST_DEBUG // when this is set to true, all calls & responses will be logged under /log
     );
 
   private static $kExpiredAccessToken = 'AAABrFmeaJjgBAIshbq5ZBqZBICsmveZCZBi6O4w9HSTkFI73VMtmkL9jLuWsZBZC9QMHvJFtSulZAqonZBRIByzGooCZC8DWr0t1M4BL9FARdQwPWPnIqCiFQ';
 
   /* will test that the site is accessible */
   public static function testConnection(){
-  	if(self::doCall(self::BASEURL .'/en/site/index')){
+  	if(self::doCall(TEST_BASEURL .'/en/site/index')){
   		return true;
   	}
   }
@@ -53,20 +48,6 @@ class PHPSDKTestCase extends PHPUnit_Framework_TestCase {
     $callresult = $appzio->testKey();
     $this->assertEquals($callresult->msg,'Hello World!', 'Library broken?');
   }
-
-  private function createUser($appzio){
-
-      $userparams = array(
-          'temp' => true,
-          'debug' => false
-      );
-
-      /* create user */
-      $userinfo = $appzio->createUser($userparams);
-      $this->assertEquals(strlen($userinfo->token), 32, "Token does not work :-(");
-      return $userinfo;
-  }
-
 
     /* tests that we can create user, check its access token and drop the same user */
   public function testCreateUser(){
@@ -89,67 +70,36 @@ class PHPSDKTestCase extends PHPUnit_Framework_TestCase {
     public function testGetActions(){
         $appzio = new Appzio($this->params);
         $userinfo = $this->createUser($appzio);
-        $return = $appzio->getActions($userinfo->token);
+        $return = $appzio->listBranches($userinfo->token);
 
         $ret = each($return);
         $action = $ret[1];
 
+        if(isset($return->{0}->actions->{1})){
+            $firstaction = $return->{0}->actions->{1};
+        } else {
+            $firstaction = false;
+        }
+
         /* check we get an action list with at least one action */
-        $this->assertEquals(is_object($action), true, "Didn't get a proper action list. Make sure your test game has an active action which includes Hello world! text.");
-        $this->assertContains('Hello world', $action->msg, "Didn't get an action. Make sure your test game has an active action which includes Hello world! text.");
+        $this->assertEquals(is_object($firstaction), true, "Didn't get a proper action list. Make sure your test game has an active action which includes Hello world! text.");
+        $this->assertContains('Welcome', $firstaction->msg, "Didn't get an action. Make sure your test game has an active action which includes Welcome! text.");
 
         /* check that the webview displays ok */
         $opts = array('http'=>array('header' => "User-Agent:MyAgent/1.0\r\n"));
         $context = stream_context_create($opts);
-        $web = file_get_contents($action->actionurl_mobile_en,false,$context);
-        $this->assertContains('Hello world', $web, "Didn't get action's webview. Make sure your test game has an active action which includes Hello world! text.");
+        $web = file_get_contents($firstaction->actionurl_mobile_en,false,$context);
+        $this->assertContains('Welcome', $web, "Didn't get action's webview. Make sure your test game has an active action which includes Hello world! text.");
 
         /* complete action */
-        $return = $appzio->completeAction($userinfo->token, $action->actionid, $action->token);
+        $return = $appzio->completeAction($userinfo->token, $firstaction->actionid, $firstaction->token);
         $this->assertEquals(true,$return, "Couldn't complete the action :-/");
 
         /* drop user */
         $test = $appzio->dropUser($userinfo->username);
         $this->assertEquals(true,$test, "Couldn't delete the user :-/");
-
     }
 
-
-
-    /* this will test the simple base64 encryption scheme, which exists
-        in favor of android to provide better performance at the cost of
-        security */
-
-    public function testSimpleEncrypt(){
-        $appzio = new Appzio($this->params);
-        $appzio->encryptScheme = 3;
-
-        /* create user */
-        $userinfo = $this->createUser($appzio);
-        $this->assertEquals(strlen($userinfo->token),32,"doesn't look like a valid token, using simple encryption scheme");
-
-        /* test whether token is valid */
-        $test = $appzio->testAccessToken($userinfo->token);
-        $this->assertEquals($test, true, "Token does not work / connecting using simple encryption scheme");
-
-        /* drop user */
-        $test = $appzio->dropUser($userinfo->username);
-        $this->assertEquals($test, true, "Couldn't delete the user using simple encryption scheme");
-
-    }
-
-
-
-    public function testPushId(){
-        /* create user, add push id */
-        $appzio = new Appzio($this->params);
-        $userinfo = $this->createUser($appzio);
-        $appzio->addPushId($userinfo->username,'tester','ios');
-
-        /* check that it got saved ok */
-        $return = $appzio->retrievePushId($userinfo->username);
-        $this->assertEquals('tester', $return->device_id, 'Looks like there is a problem with setting the push id');
-    }
 
     public function testLogin(){
         /* login user, returns token */
@@ -171,7 +121,9 @@ class PHPSDKTestCase extends PHPUnit_Framework_TestCase {
     public function testGetUserPoints(){
         $appzio = new Appzio($this->params);
         $userinfo = $this->createUser($appzio);
+
         $callresult = $appzio->fetchUserPoints($userinfo->token);
+
         $this->assertEquals('2', $callresult->primary, 'Looks like we did not get point information correctly. Note that if you are testing this against
         your own game, the game should be setup so, that there is an invisible action which assigns player 2 points when game is createad. Ie. test expects
         to get two points for any new user');
@@ -191,8 +143,6 @@ class PHPSDKTestCase extends PHPUnit_Framework_TestCase {
         /* drop user */
         $appzio->dropUser($userinfo->username);
     }
-
-
 
 
     public function testUserinfo(){
@@ -236,42 +186,23 @@ class PHPSDKTestCase extends PHPUnit_Framework_TestCase {
 
     }
 
-    public function testFbId(){
-        $appzio = new Appzio($this->params);
-        $userinfo = $this->createUser($appzio);
-
-        /* add facebook id to user information NOTE: you can't use setUserInfo method for this */
-        $return = $appzio->addFacebookId($userinfo->username,self::FBUSERID);
-        $this->assertEquals('ok', $return->msg, 'Looks like the facebook user was not valid');
-
-        /* drop user */
-        $appzio->dropUser($userinfo->username);
-    }
-
-
-    public function testFbToken(){
-        $appzio = new Appzio($this->params);
-        $userinfo = $this->createUser($appzio);
-
-        /* tests the provided facebook token and adds it to user if its valid (also sets fbid based on token) */
-        $return = $appzio->addFacebookToken($userinfo->username,self::FBACCESSTOKEN);
-        $this->assertEquals('ok', $return->msg, 'Looks like the facebook user was not valid');
-
-        /* drop user */
-        $appzio->dropUser($userinfo->username);
-    }
-
     /* fetches top list. see documentation for more info on parameters */
-    public function testGetToplist(){
+    public function testListBranches(){
         $appzio = new Appzio($this->params);
         $userinfo = $this->createUser($appzio);
-        $callresult = $appzio->fetchToplist($userinfo->token);
-        $this->assertEquals('1', $callresult->toplist->{1}->rank, 'Looks like we did not get a top list');
+        $callresult = $appzio->listBranches($userinfo->token);
+
+        if(isset($callresult->{0}->actions->{1}->subject)){
+            $subject = $callresult->{0}->actions->{1}->subject;
+        } else {
+            $subject = false;
+        }
+
+        $this->assertContains('Welcome', $subject, 'Looks like we did not get a top list');
 
         /* drop user */
         $appzio->dropUser($userinfo->username);
     }
-
 
     private static function doCall($call,$post=false){
         $opts = array('http'=>array('header' => "User-Agent:MyAgent/1.0\r\n"));
@@ -285,7 +216,21 @@ class PHPSDKTestCase extends PHPUnit_Framework_TestCase {
         }
 
       }
-	
+
+    private function createUser($appzio){
+
+        $userparams = array(
+            'temp' => true,
+            'debug' => false
+        );
+
+        /* create user */
+        $userinfo = $appzio->createUser($userparams);
+        $this->assertEquals(strlen($userinfo->token), 32, "Token does not work :-(");
+        return $userinfo;
+    }
+
+
 }
 
 

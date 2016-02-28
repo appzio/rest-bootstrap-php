@@ -54,7 +54,7 @@ class Appzio
   // We can set this to a high number because the main session
   // expiration will trump this.
   const AESS_COOKIE_EXPIRE = 31556926; 	// 1 year
-  const API_VERSION = '1.1';
+  const API_VERSION = '1.7';
   const API_FORMAT = 'json';			// either json or html
 
   protected $api_key;
@@ -67,6 +67,7 @@ class Appzio
   // defines whether the response is expected to be encrypted
   protected $encrypted_response = false;
 
+    public $debug;
 
   /*
         Encrypt options
@@ -90,9 +91,10 @@ class Appzio
   );
 
   public function __construct($config) {
-  	$this->api_key = $config['api_key'];
-  	$this->api_secret_key = $config['api_secret_key'];
-  	$this->api_url = $config['api_url'];
+      $this->api_key = $config['api_key'];
+      $this->api_secret_key = $config['api_secret_key'];
+      $this->api_url = $config['api_url'];
+      $this->debug = isset($config['debug']) ? $config['debug'] : false;
   }
 
   public function testKey(){
@@ -106,7 +108,6 @@ class Appzio
   	  	$callurl = $this->api_url .'/' .$this->api_key .'/users/createuser';
 
   	  	$query['userinfo'] = $params;
-        $query['debug'] = false;
         $query['return_userinfo'] = true;
 
         $this->encrypted_response = false;
@@ -120,13 +121,11 @@ class Appzio
 		}
   }
 
-
     /* list branches */
     public function listBranches($token){
-        $callurl = $this->api_url .'/' .$this->api_key .'/branches/listbranches';
-        $return = $this->makeRequest($callurl,array('token' => $token));
+        $callurl = $this->api_url .'/' .$token .'/branches/listbranches';
+        $return = $this->makeRequest($callurl,array('gesidemenu' => 1));
         return $return;
-
     }
 
     public function manipulatePoints($username,$pointsystem,$points){
@@ -158,11 +157,10 @@ class Appzio
         }
     }
 
+    /* depreceated in favour of list branches */
     public function getActions($token){
         $callurl = $this->api_url .'/' .$token .'/actions/getactions';
-        $query['debug'] = false;
-        //$query['stop'] = true;
-        $return = $this->makeRequest($callurl,$query);
+        $return = $this->makeRequest($callurl);
 
         if(is_object($return)){
             return $return;
@@ -180,7 +178,6 @@ class Appzio
     public function completeAction($token,$actionid,$actiontoken,$answer=false){
         $callurl = $this->api_url .'/' .$token .'/actions/completeaction';
 
-        $query['debug'] = false;
         $query['token'] = $actiontoken;
         $query['actionid'] = $actionid;
 
@@ -307,7 +304,7 @@ class Appzio
     /* updates several variables at once */
     public function updateVariables($userid,$variables=array()){
         $callurl = $this->api_url .'/' .$this->api_key .'/variable/updateuservariables';
-        $return = $this->makeRequest($callurl,array('username' => $userid, 'variables' => $variables,'debug' => true));
+        $return = $this->makeRequest($callurl,array('username' => $userid, 'variables' => $variables));
 
         if(is_object($return)){
             return $return;
@@ -333,7 +330,7 @@ class Appzio
     /* fetches config for client (mobile client) */
    public function fetchClientConfig($token){
        $callurl = $this->api_url .'/' .$this->api_key .'/clientconfig/getclientconfig';
-       $return = $this->makeRequest($callurl,array('token' => $token,'debug' => true));
+       $return = $this->makeRequest($callurl,array('token' => $token));
        return $return;
    }
 
@@ -459,12 +456,7 @@ class Appzio
 
     protected function makeRequest($url, $query=array(), $ch=null) {
 
-        if(isset($query['debug']) AND $query['debug'] == true){
-            $debug = true;
-            unset($query['debug']);
-        } else {
-            $debug = false;
-        }
+        $function = debug_backtrace()[1]['function'];
 
         /* we send the api_key as param also, this is required
         to authorize the call */
@@ -479,6 +471,11 @@ class Appzio
 
         if($query){
             $params['query'] = $query;
+
+            if($this->debug == true){
+                file_put_contents('log/' .$function .'-query.txt',serialize($query));
+            }
+
         }
 
         $params = json_encode($params);
@@ -493,21 +490,14 @@ class Appzio
 
         $postfields = array('params' => $params, 'cryptversion' => $this->encryptScheme);
 
-        if($debug == true){
-            file_put_contents('request.txt',$url .'?cryptversion=' .$this->encryptScheme .'&params=' .$params);
+        if($this->debug == true){
+            file_put_contents('log/' .$function .'-request.txt',$url .'?cryptversion=' .$this->encryptScheme .'&params=' .$params);
         }
-
-        if(isset($query['stop']) AND $query['stop'] == true){
-            print_r($url .'----' );
-            print_r($postfields);
-            die();
-        }
-
 
         $result = $this->curlCall($url,$postfields);
 
-        if($debug == true){
-            file_put_contents('raw-result.txt',$result);
+        if($this->debug == true){
+            file_put_contents('log/' .$function .'-raw-result.txt',$result);
         }
 
         if($this->encrypted_response == true){
@@ -518,16 +508,15 @@ class Appzio
                 $ret = base64_decode($result);
             }
 
-            if($debug == true){
-                file_put_contents('result-unencrypted.txt',$result);
+            if($this->debug == true){
+                file_put_contents('log/' .$function .'-result-unencrypted.txt',$result);
             }
 
             return json_decode($ret);
         } else {
     /*		echo(chr(10) .'------------END-----------' .chr(10));*/
-            if($debug == true){
-                file_put_contents('result-plain.txt',$result);
-                print_r(json_decode($result));
+            if($this->debug == true){
+                file_put_contents('log/' .$function .'-result-plain.txt',$result);
             }
             return json_decode($result);
         }
