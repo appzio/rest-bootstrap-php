@@ -1,3 +1,11 @@
+# Appzio REST bootstrap library
+
+If you have an Appzio app, you will also automatically have an access to the app's own API. Through the api you can create users, manipulate data, access gamification information, access apps configuration and many other things. 
+
+Appzio's own native iOS and Android apps make use of the very same API, so API is always available and should always pass these basic tests. 
+
+You can email developer-support at our main domain address for queries. 
+
 For up-to-date documentation & implementation status:
 http://appzio.com/
 
@@ -5,7 +13,6 @@ To run the basic tests:
 1) comment out the constants from top of the tests/basic.php
 2) run this from the command line:
 phpunit --stderr --bootstrap tests/bootstrap.php tests/basic.php
-
 
 # Test setup 1
 Use the provided keys within the basic.php (uncomment first), they connect with app.appzio.com server and tests should run without any errors
