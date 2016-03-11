@@ -74,7 +74,7 @@ class Appzio
 
         1 = depreceated, EOL 1/2015
         2 = secure PBKDF2 (default)
-        3 = simple base 64, no real security
+        3 = simple base 64, no real security, better performance
 
   */
 
@@ -87,7 +87,7 @@ class Appzio
     CURLOPT_CONNECTTIMEOUT => 10,
     CURLOPT_RETURNTRANSFER => true,
     CURLOPT_TIMEOUT        => 60,
-    CURLOPT_USERAGENT      => 'appzio-php-1.0.2',
+    CURLOPT_USERAGENT      => 'appzio-php-1.7.0',
   );
 
   public function __construct($config) {
@@ -141,7 +141,20 @@ class Appzio
         } else {
             return false;
         }
+    }
 
+
+    public function deliverErrorLog(){
+        $callurl = $this->api_url .'/' .$this->api_key .'/apps/errorlog';
+        $query['log'] = 'Test entry';
+
+        $return = $this->makeRequest($callurl,$query,null,false);
+
+        if(is_object($return)){
+            return $return;
+        } else {
+            return false;
+        }
     }
 
     public function getUserInfo($username){
@@ -286,6 +299,28 @@ class Appzio
             return false;
         }
     }
+
+
+
+    /* updates a single variable */
+    public function uploadFile($userid,$variable_name,$file){
+
+        $file = @file_get_contents($file);
+        if(!$file) return false;
+        $file = base64_encode($file);
+        $callurl = $this->api_url .'/' .$this->api_key .'/variable/uploadfile';
+        $arr = array('username' => $userid,
+            'variablename' => $variable_name,'file' => $file,'api_key' => $this->api_key);
+
+        $return = $this->makeRequest($callurl,$arr);
+
+        if(is_object($return)){
+            return $return;
+        } else {
+            return false;
+        }
+    }
+
 
 
     /* updates a single variable */
@@ -454,7 +489,7 @@ class Appzio
     }
 
 
-    protected function makeRequest($url, $query=array(), $ch=null) {
+    protected function makeRequest($url, $query=array(), $ch=null, $no_encryption=false) {
 
         $function = debug_backtrace()[1]['function'];
 
@@ -488,7 +523,12 @@ class Appzio
             throw new Exception('Encryption not supported by this library. Only 2 & 3 are valid values.');
         }
 
-        $postfields = array('params' => $params, 'cryptversion' => $this->encryptScheme);
+        if($no_encryption){
+            $postfields = $query;
+            $postfields['cryptversion'] = $this->encryptScheme;
+        } else {
+            $postfields = array('params' => $params, 'cryptversion' => $this->encryptScheme);
+        }
 
         if($this->debug == true){
             file_put_contents('log/' .$function .'-request.txt',$url .'?cryptversion=' .$this->encryptScheme .'&params=' .$params);
